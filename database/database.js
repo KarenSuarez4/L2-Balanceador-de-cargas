@@ -17,4 +17,4 @@ connectiondb.connect((error) => {
   console.log("Connected to the database!");
 });
 
-export default connectiondb;
+// export default connectiondb;
