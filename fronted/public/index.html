@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestor de Imágenes Distribuido</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/stiles.css" />
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h1 class="mb-4">Gestor de Imágenes Distribuido</h1>
+
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5>Subir Imágenes</h5>
+        </div>
+        <div class="card-body">
+          <div
+            role="button"
+            tabindex="0"
+            id="uploadArea"
+            class="upload-area"
+            aria-label="Zona para subir imágenes. Haz clic o arrastra archivos aquí."
+          >
+            <p class="mb-2">
+              Arrastra y suelta imágenes aquí o haz clic para seleccionar
+              archivos
+            </p>
+            <inputx
+              type="file"
+              id="fileInput"
+              accept="image/*"
+              multiple
+              class="d-none"
+            />
+            <button class="btn btn-primary">Seleccionar Imágenes</button>
+          </div>
+
+          <div id="loadingIndicator" class="loading-indicator">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Subiendo imágenes...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">Imágenes Almacenadas</h5>
+          <button id="refreshBtn" class="btn btn-sm btn-outline-primary">
+            Actualizar
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="imagesList" class="row">
+            <!-- Las imágenes se cargarán aquí -->
+          </div>
+          <div id="noImagesMessage" class="text-center py-4 d-none">
+            <p class="text-muted">No hay imágenes almacenadas</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para vista previa de imagen -->
+    <div
+      class="modal fade"
+      id="imagePreviewModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="previewModalTitle">Vista previa</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body text-center">
+            <img
+              id="previewImage"
+              src=""
+              alt="Vista previa"
+              class="img-fluid"
+            />
+          </div>
+          <div class="modal-footer">
+            <a id="downloadBtn" href="#" class="btn btn-primary" download
+              >Descargar</a
+            >
+            <button type="button" id="deleteBtn" class="btn btn-danger">
+              Eliminar
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Configuración centralizada
+      const CONFIG = {
+        API_URL:
+          window.location.hostname === "localhost"
+            ? "http://localhost:3001"
+            : "https://api.tudominio.com",
+        IMAGE_LOAD_LIMIT: 20,
+        ALLOWED_TYPES: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+      };
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const API_URL = CONFIG.API_URL; // URL del middleware
+        let currentImageId = null;
+
+        // Referencias a elementos del DOM
+        const fileInput = document.getElementById("fileInput");
+        const uploadArea = document.getElementById("uploadArea");
+        const loadingIndicator = document.getElementById("loadingIndicator");
+        const imagesList = document.getElementById("imagesList");
+        const noImagesMessage = document.getElementById("noImagesMessage");
+        const refreshBtn = document.getElementById("refreshBtn");
+
+        // Modal de vista previa
+        const imagePreviewModal = new bootstrap.Modal(
+          document.getElementById("imagePreviewModal")
+        );
+        const previewModalTitle = document.getElementById("previewModalTitle");
+        const previewImage = document.getElementById("previewImage");
+        const downloadBtn = document.getElementById("downloadBtn");
+        const deleteBtn = document.getElementById("deleteBtn");
+
+        // Eventos de drag and drop
+        uploadArea.addEventListener("click", () => fileInput.click());
+
+        uploadArea.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          uploadArea.classList.add("dragover");
+        });
+
+        uploadArea.addEventListener("dragleave", () => {
+          uploadArea.classList.remove("dragover");
+        });
+
+        uploadArea.addEventListener("drop", (e) => {
+          e.preventDefault();
+          uploadArea.classList.remove("dragover");
+
+          if (e.dataTransfer.files.length > 0) {
+            handleFiles(e.dataTransfer.files);
+          }
+        });
+
+        fileInput.addEventListener("change", () => {
+          if (fileInput.files.length > 0) {
+            handleFiles(fileInput.files);
+          }
+        });
+
+        // Manejar archivos seleccionados
+        function handleFiles(files) {
+          loadingIndicator.style.display = "block";
+
+          const uploadPromises = [];
+
+          for (const file of files) {
+            if (file.type.startsWith("image/")) {
+              const formData = new FormData();
+              formData.append("image", file);
+
+              const uploadPromise = fetch(`${API_URL}/upload`, {
+                method: "POST",
+                body: formData,
+              }).then((response) => {
+                if (!response.ok) {
+                  return response.json().then((data) => {
+                    throw new Error(data.error || "Error al subir la imagen");
+                  });
+                }
+                return response.json();
+              });
+
+              uploadPromises.push(uploadPromise);
+            }
+          }
+
+          Promise.all(uploadPromises)
+            .then(() => {
+              loadImages();
+              fileInput.value = "";
+            })
+            .catch((error) => {
+              alert(`Error: ${error.message}`);
+              console.error("Error al subir imágenes:", error);
+            })
+            .finally(() => {
+              loadingIndicator.style.display = "none";
+            });
+        }
+
+        // Cargar imágenes desde el servidor
+        function loadImages() {
+          fetch(`${API_URL}/images`)
+            .then((response) => response.json())
+            .then((images) => {
+              imagesList.innerHTML = "";
+
+              if (images.length === 0) {
+                noImagesMessage.classList.remove("d-none");
+              } else {
+                noImagesMessage.classList.add("d-none");
+
+                images.forEach((image) => {
+                  const imageCard = document.createElement("div");
+                  imageCard.className = "col-md-4 col-sm-6 image-card";
+
+                  imageCard.innerHTML = `
+                  <div class="card">
+                    <img src="placeholder.jpg" data-src="${API_URL}/images/${
+                    image.id
+                  }" class="image-thumbnail lazy" alt="${image.original_name}">
+                    <div class="card-body">
+                      <h5 class="card-title text-truncate">${
+                        image.original_name
+                      }</h5>
+                      <p class="card-text">
+                        <small class="text-muted">
+                          Tamaño: ${formatFileSize(image.size)}<br>
+                          Nodo: ${image.node_id}<br>
+                          Fecha: ${formatDate(image.created_at)}
+                        </small>
+                      </p>
+                      <button class="btn btn-sm btn-primary view-btn" data-id="${
+                        image.id
+                      }" data-name="${image.original_name}">
+                        Ver detalle
+                      </button>
+                    </div>
+                  </div>
+                `;
+
+                  imagesList.appendChild(imageCard);
+
+                  // Agregar evento al botón de vista
+                  const viewBtn = imageCard.querySelector(".view-btn");
+                  viewBtn.addEventListener("click", () => {
+                    openImagePreview(image.id, image.original_name);
+                  });
+                });
+
+                // Implementar observador de intersección para carga perezosa
+                lazyLoadImages();
+              }
+            })
+            .catch((error) => {
+              console.error("Error al cargar imágenes:", error);
+              alert("Error al cargar las imágenes");
+            });
+        }
+
+        // Abrir vista previa de imagen
+        function openImagePreview(imageId, imageName) {
+          currentImageId = imageId;
+          previewModalTitle.textContent = imageName;
+          previewImage.src = `${API_URL}/images/${imageId}`;
+          downloadBtn.href = `${API_URL}/images/${imageId}`;
+          downloadBtn.download = imageName;
+
+          imagePreviewModal.show();
+        }
+
+        // Eliminar imagen
+        deleteBtn.addEventListener("click", () => {
+          if (currentImageId) {
+            if (confirm("¿Estás seguro de que deseas eliminar esta imagen?")) {
+              fetch(`${API_URL}/images/${currentImageId}`, {
+                method: "DELETE",
+              })
+                .then((response) => {
+                  if (!response.ok) {
+                    return response.json().then((data) => {
+                      throw new Error(
+                        data.error || "Error al eliminar la imagen"
+                      );
+                    });
+                  }
+                  return response.json();
+                })
+                .then(() => {
+                  imagePreviewModal.hide();
+                  loadImages();
+                })
+                .catch((error) => {
+                  console.error("Error al eliminar imagen:", error);
+                  alert(`Error: ${error.message}`);
+                });
+            }
+          }
+        });
+
+        // Botón de actualizar
+        refreshBtn.addEventListener("click", loadImages);
+
+        // Funciones de utilidad
+        function formatFileSize(bytes) {
+          if (bytes < 1024) {
+            return bytes + " B";
+          } else if (bytes < 1024 * 1024) {
+            return (bytes / 1024).toFixed(2) + " KB";
+          } else {
+            return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+          }
+        }
+
+        function formatDate(dateStr) {
+          const date = new Date(dateStr);
+          return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+        }
+
+        // Filtrar imágenes
+        function filterImages(keyword) {
+          const cards = document.querySelectorAll(".image-card");
+          let found = false;
+
+          cards.forEach((card) => {
+            const title = card
+              .querySelector(".card-title")
+              .textContent.toLowerCase();
+            if (title.includes(keyword.toLowerCase())) {
+              card.style.display = "block";
+              found = true;
+            } else {
+              card.style.display = "none";
+            }
+          });
+
+          if (!found) {
+            noImagesMessage.classList.remove("d-none");
+            noImagesMessage.textContent =
+              "No se encontraron imágenes con ese nombre";
+          } else {
+            noImagesMessage.classList.add("d-none");
+          }
+        }
+
+        // Mostrar notificación
+        function showNotification(message, type = "info") {
+          const notification = document.createElement("div");
+          notification.className = `alert alert-${
+            type === "error" ? "danger" : "success"
+          } notification`;
+          notification.textContent = message;
+
+          document.body.appendChild(notification);
+
+          setTimeout(() => {
+            notification.classList.add("show");
+
+            setTimeout(() => {
+              notification.classList.remove("show");
+              setTimeout(() => notification.remove(), 300);
+            }, 3000);
+          }, 10);
+        }
+
+        // Implementar observador de intersección para carga perezosa
+        const lazyLoadImages = () => {
+          const lazyImages = document.querySelectorAll("img.lazy");
+
+          if ("IntersectionObserver" in window) {
+            const observer = new IntersectionObserver((entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  const img = entry.target;
+                  img.src = img.dataset.src;
+                  img.classList.remove("lazy");
+                  observer.unobserve(img);
+                }
+              });
+            });
+
+            lazyImages.forEach((img) => observer.observe(img));
+          } else {
+            // Fallback para navegadores sin soporte
+            lazyImages.forEach((img) => {
+              img.src = img.dataset.src;
+              img.classList.remove("lazy");
+            });
+          }
+        };
+
+        // Cargar imágenes al inicio
+        loadImages();
+      });
+
+      let currentPage = 1;
+      const imagesPerPage = 12;
+
+      async function loadMoreImages() {
+        try {
+          const response = await fetch(
+            `${CONFIG.API_URL}/images?page=${currentPage}&limit=${imagesPerPage}`
+          );
+          const newImages = await response.json();
+
+          if (newImages.length === 0) {
+            // No hay más imágenes
+            return false;
+          }
+
+          renderImages(newImages);
+          currentPage++;
+          return true;
+        } catch (error) {
+          console.error("Error al cargar más imágenes:", error);
+          showNotification("Error al cargar más imágenes", "error");
+          return false;
+        }
+      }
+    </script>
+    <script src="js/imageManager.js"></script>
+  </body>
+</html>
