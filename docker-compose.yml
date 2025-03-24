@@ -1,0 +1,80 @@
+version: '3'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - middleware
+    networks:
+      - app-network
+
+  middleware:
+    build: ./middleware
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mysql
+      - storage-node-1
+      - storage-node-2
+      - storage-node-3
+    volumes:
+      - ./middleware/src/config:/app/src/config
+    networks:
+      - app-network
+
+  mysql:
+    build: ./database
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: image_manager
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - ./database/data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  storage-node-1:
+    build: ./storage-node
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ID=1
+      - MAX_STORAGE=104857600  # 100MB en bytes
+    volumes:
+      - ./storage-node-1-data:/app/src/storage
+    networks:
+      - app-network
+
+  storage-node-2:
+    build: ./storage-node
+    ports:
+      - "3003:3002"
+    environment:
+      - NODE_ID=2
+      - MAX_STORAGE=104857600  # 100MB en bytes
+    volumes:
+      - ./storage-node-2-data:/app/src/storage
+    networks:
+      - app-network
+
+  storage-node-3:
+    build: ./storage-node
+    ports:
+      - "3004:3002"
+    environment:
+      - NODE_ID=3
+      - MAX_STORAGE=104857600  # 100MB en bytes
+    volumes:
+      - ./storage-node-3-data:/app/src/storage
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
