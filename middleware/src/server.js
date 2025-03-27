@@ -16,34 +16,31 @@ app.use(express.json());
 const upload = multer({ dest: "uploads/" });
 
 const pool = mysql.createPool({
-  host: "mysql", // Nombre del servicio en docker-compose
-  user: "user", // Como está en docker-compose.yml
-  password: "password", // Como está en docker-compose.yml
+  host: "mysql",
+  user: "user",
+  password: "password",
   database: "image_manager",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  connectTimeout: 10000, // Aumentar el tiempo de espera para la conexión
+  connectTimeout: 10000,
 });
 
 async function loadStorageNodes() {
   try {
-    // Crear el directorio config si no existe
     const configDir = path.join(__dirname, "config");
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
 
     const nodesPath = path.join(configDir, "nodes.txt");
-    
-    // Si el archivo no existe, crear un archivo con los nodos predeterminados
     if (!fs.existsSync(nodesPath)) {
       const defaultNodes = `storage-node-1:3002
 storage-node-2:3002
 storage-node-3:3002`;
-      fs.writeFileSync(nodesPath, defaultNodes, 'utf8');
+      fs.writeFileSync(nodesPath, defaultNodes, "utf8");
     }
-    
+
     const nodesContent = fs.readFileSync(nodesPath, "utf8");
     const nodesList = nodesContent
       .split("\n")
@@ -82,23 +79,18 @@ storage-node-3:3002`;
 async function getBestStorageNode() {
   try {
     const [nodes] = await pool.query(
-      'SELECT * FROM storage_nodes ORDER BY available_storage DESC'
+      "SELECT * FROM storage_nodes ORDER BY available_storage DESC"
     );
 
     if (nodes.length === 0) {
-      // Si no hay nodos registrados, intentamos cargarlos nuevamente
       await loadStorageNodes();
-      
-      // Consultamos nuevamente
       const [freshNodes] = await pool.query(
-        'SELECT * FROM storage_nodes ORDER BY available_storage DESC'
+        "SELECT * FROM storage_nodes ORDER BY available_storage DESC"
       );
-      
+
       if (freshNodes.length === 0) {
         throw new Error("No hay nodos de almacenamiento disponibles");
       }
-      
-      // Usamos los nodos recién cargados
       nodes = freshNodes;
     }
 
@@ -109,7 +101,7 @@ async function getBestStorageNode() {
         console.log(`Intentando conectar con nodo ${node.ip}:${node.port}...`);
         const response = await axios.get(
           `http://${node.ip}:${node.port}/available-space`,
-          { timeout: 5000 }  // Agregamos un timeout para evitar esperas largas
+          { timeout: 5000 }
         );
 
         await pool.query(
@@ -221,19 +213,16 @@ app.post("/upload", upload.single("image"), async (req, res) => {
     }
 
     if (error.response) {
-      // Error de respuesta del nodo de almacenamiento
       res.status(500).json({
         error: "Error en el nodo de almacenamiento",
         details: error.response.data || error.response.statusText,
       });
     } else if (error.request) {
-      // Error de conexión con el nodo de almacenamiento
       res.status(500).json({
         error: "No se pudo conectar con el nodo de almacenamiento",
         details: error.message,
       });
     } else {
-      // Otros errores
       res.status(500).json({
         error: "Error al procesar la solicitud",
         details: error.message,
@@ -327,8 +316,6 @@ async function initializeApp() {
     if (!fs.existsSync("uploads")) {
       fs.mkdirSync("uploads");
     }
-
-    // Intentar conectar a la base de datos con reintentos
     let connected = false;
     let retries = 0;
     const maxRetries = 10;
@@ -336,7 +323,6 @@ async function initializeApp() {
     while (!connected && retries < maxRetries) {
       try {
         console.log(`Intentando conectar a MySQL (intento ${retries + 1})...`);
-        // Verificar conexión
         await pool.query("SELECT 1");
         connected = true;
         console.log("Conexión a MySQL establecida correctamente.");
@@ -345,7 +331,6 @@ async function initializeApp() {
         console.log(
           `Error al conectar a MySQL: ${error.message}. Reintentando en 5 segundos...`
         );
-        // Esperar 5 segundos antes de reintentar
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
     }
