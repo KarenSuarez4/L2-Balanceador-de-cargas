@@ -10,7 +10,6 @@ const NODE_ID = process.env.NODE_ID || "1";
 const MAX_STORAGE = process.env.MAX_STORAGE || 104857600; // 100MB en bytes
 const STORAGE_PATH = path.join(__dirname, "storage");
 
-// Configurar multer para almacenamiento de archivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, STORAGE_PATH);
@@ -23,15 +22,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Middleware
 app.use(express.json());
 
-// Asegurar que el directorio de almacenamiento exista
 if (!fs.existsSync(STORAGE_PATH)) {
   fs.mkdirSync(STORAGE_PATH, { recursive: true });
 }
 
-// Calcular espacio utilizado
 function getStorageInfo() {
   let usedSpace = 0;
 
@@ -52,15 +48,12 @@ function getStorageInfo() {
   };
 }
 
-// Endpoints
 
-// Consultar espacio disponible
 app.get("/available-space", (req, res) => {
   const storageInfo = getStorageInfo();
   res.json(storageInfo);
 });
 
-// Subir imagen
 app.post("/upload", upload.single("image"), (req, res) => {
   try {
     if (!req.file) {
@@ -71,10 +64,8 @@ app.post("/upload", upload.single("image"), (req, res) => {
 
     const { filename, path: filePath } = req.file;
 
-    // Verificar espacio disponible
     const storageInfo = getStorageInfo();
     if (req.file.size > storageInfo.availableSpace) {
-      // Si no hay espacio, eliminar el archivo y devolver error
       fs.unlinkSync(filePath);
       return res
         .status(400)
@@ -93,7 +84,6 @@ app.post("/upload", upload.single("image"), (req, res) => {
   }
 });
 
-// Obtener una imagen
 app.get("/images/:filename", (req, res) => {
   try {
     const filePath = path.join(STORAGE_PATH, req.params.filename);
@@ -109,7 +99,6 @@ app.get("/images/:filename", (req, res) => {
   }
 });
 
-// Eliminar una imagen
 app.delete("/images/:filename", (req, res) => {
   try {
     const filePath = path.join(STORAGE_PATH, req.params.filename);
@@ -127,7 +116,6 @@ app.delete("/images/:filename", (req, res) => {
   }
 });
 
-// Información del nodo
 app.get("/info", (req, res) => {
   const storageInfo = getStorageInfo();
   res.json({
@@ -136,7 +124,6 @@ app.get("/info", (req, res) => {
   });
 });
 
-// Iniciar servidor
 app.listen(PORT, () => {
   console.log(
     `Nodo de almacenamiento ${NODE_ID} escuchando en el puerto ${PORT}`

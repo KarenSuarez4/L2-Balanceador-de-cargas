@@ -1,212 +1,242 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestor de Imágenes Distribuido</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .image-card {
-      margin-bottom: 20px;
-    }
-    
-    .image-thumbnail {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-    }
-    
-    .upload-area {
-      border: 2px dashed #ccc;
-      padding: 20px;
-      text-align: center;
-      margin-bottom: 20px;
-      cursor: pointer;
-    }
-    
-    .upload-area.dragover {
-      background-color: #f0f0f0;
-      border-color: #007bff;
-    }
-    
-    .loading-indicator {
-      display: none;
-      text-align: center;
-      margin: 20px 0;
-    }
-  </style>
-</head>
-<body>
-  <div class="container mt-4">
-    <h1 class="mb-4">Gestor de Imágenes Distribuido</h1>
-    
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5>Subir Imágenes</h5>
-      </div>
-      <div class="card-body">
-        <div id="uploadArea" class="upload-area">
-          <p class="mb-2">Arrastra y suelta imágenes aquí o haz clic para seleccionar archivos</p>
-          <input type="file" id="fileInput" accept="image/*" multiple class="d-none">
-          <button class="btn btn-primary">Seleccionar Imágenes</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestor de Imágenes Distribuido</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css"
+    />
+    <link href="css/stiles.css" rel="stylesheet" />
+  </head>
+  <body class="bg-light">
+    <div class="container mt-4 mb-5">
+      <h1 class="page-title text-center mb-4">
+        <i class="bi bi-images me-2"></i>Gestor de Imágenes Distribuido
+      </h1>
+
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0"><i class="bi bi-upload me-2"></i>Subir Imágenes</h5>
         </div>
-        
-        <div id="loadingIndicator" class="loading-indicator">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Cargando...</span>
+        <div class="card-body">
+          <div id="uploadArea" class="upload-area">
+            <i class="bi bi-cloud-arrow-up display-4 mb-3 text-muted"></i>
+            <p class="mb-2">
+              Arrastra y suelta imágenes aquí o haz clic para seleccionar
+              archivos
+            </p>
+            <input
+              type="file"
+              id="fileInput"
+              accept="image/*"
+              multiple
+              class="d-none"
+            />
+            <button class="btn btn-primary">
+              <i class="bi bi-file-earmark-image me-1"></i> Seleccionar Imágenes
+            </button>
           </div>
-          <p class="mt-2">Subiendo imágenes...</p>
+
+          <div id="loadingIndicator" class="loading-indicator">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Subiendo imágenes...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div
+          class="card-header bg-white d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">
+            <i class="bi bi-grid-3x3 me-2"></i>Imágenes Almacenadas
+          </h5>
+          <button id="refreshBtn" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="imagesList" class="row fade-in">
+            <!-- Las imágenes se cargarán aquí -->
+          </div>
+          <div id="noImagesMessage" class="text-center py-5 d-none">
+            <i class="bi bi-images display-4 text-muted mb-3"></i>
+            <p class="text-muted">No hay imágenes almacenadas</p>
+            <button class="btn btn-primary mt-2" id="promptUploadBtn">
+              <i class="bi bi-upload me-1"></i> Subir imágenes
+            </button>
+          </div>
         </div>
       </div>
     </div>
-    
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Imágenes Almacenadas</h5>
-        <button id="refreshBtn" class="btn btn-sm btn-outline-primary">Actualizar</button>
-      </div>
-      <div class="card-body">
-        <div id="imagesList" class="row">
-          <!-- Las imágenes se cargarán aquí -->
-        </div>
-        <div id="noImagesMessage" class="text-center py-4 d-none">
-          <p class="text-muted">No hay imágenes almacenadas</p>
+
+    <!-- Modal para vista previa de imagen -->
+    <div
+      class="modal fade"
+      id="imagePreviewModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="previewModalTitle">
+              <i class="bi bi-image me-2"></i>Vista previa
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body text-center bg-light p-3">
+            <img
+              id="previewImage"
+              src=""
+              alt="Vista previa"
+              class="img-fluid rounded shadow-sm"
+            />
+          </div>
+          <div class="modal-footer">
+            <a id="downloadBtn" href="#" class="btn btn-primary" download>
+              <i class="bi bi-download me-1"></i> Descargar
+            </a>
+            <button type="button" id="deleteBtn" class="btn btn-danger">
+              <i class="bi bi-trash me-1"></i> Eliminar
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              <i class="bi bi-x-circle me-1"></i> Cerrar
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  
-  <!-- Modal para vista previa de imagen -->
-  <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="previewModalTitle">Vista previa</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center">
-          <img id="previewImage" src="" alt="Vista previa" class="img-fluid">
-        </div>
-        <div class="modal-footer">
-          <a id="downloadBtn" href="#" class="btn btn-primary" download>Descargar</a>
-          <button type="button" id="deleteBtn" class="btn btn-danger">Eliminar</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- JavaScript -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const API_URL = 'http://localhost:3001'; // URL del middleware
-      let currentImageId = null;
-      
-      // Referencias a elementos del DOM
-      const fileInput = document.getElementById('fileInput');
-      const uploadArea = document.getElementById('uploadArea');
-      const loadingIndicator = document.getElementById('loadingIndicator');
-      const imagesList = document.getElementById('imagesList');
-      const noImagesMessage = document.getElementById('noImagesMessage');
-      const refreshBtn = document.getElementById('refreshBtn');
-      
-      // Modal de vista previa
-      const imagePreviewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
-      const previewModalTitle = document.getElementById('previewModalTitle');
-      const previewImage = document.getElementById('previewImage');
-      const downloadBtn = document.getElementById('downloadBtn');
-      const deleteBtn = document.getElementById('deleteBtn');
-      
-      // Eventos de drag and drop
-      uploadArea.addEventListener('click', () => fileInput.click());
-      
-      uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
-      });
-      
-      uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
-      });
-      
-      uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        
-        if (e.dataTransfer.files.length > 0) {
-          handleFiles(e.dataTransfer.files);
-        }
-      });
-      
-      fileInput.addEventListener('change', () => {
-        if (fileInput.files.length > 0) {
-          handleFiles(fileInput.files);
-        }
-      });
-      
-      // Manejar archivos seleccionados
-      function handleFiles(files) {
-        loadingIndicator.style.display = 'block';
-        
-        const uploadPromises = [];
-        
-        for (const file of files) {
-          if (file.type.startsWith('image/')) {
-            const formData = new FormData();
-            formData.append('image', file);
-            
-            const uploadPromise = fetch(`${API_URL}/upload`, {
-              method: 'POST',
-              body: formData
-            }).then(response => {
-              if (!response.ok) {
-                return response.json().then(data => {
-                  throw new Error(data.error || 'Error al subir la imagen');
-                });
-              }
-              return response.json();
-            });
-            
-            uploadPromises.push(uploadPromise);
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const API_URL = "http://localhost:3001"; // URL del middleware
+        let currentImageId = null;
+
+        const fileInput = document.getElementById("fileInput");
+        const uploadArea = document.getElementById("uploadArea");
+        const loadingIndicator = document.getElementById("loadingIndicator");
+        const imagesList = document.getElementById("imagesList");
+        const noImagesMessage = document.getElementById("noImagesMessage");
+        const refreshBtn = document.getElementById("refreshBtn");
+
+        const imagePreviewModal = new bootstrap.Modal(
+          document.getElementById("imagePreviewModal")
+        );
+        const previewModalTitle = document.getElementById("previewModalTitle");
+        const previewImage = document.getElementById("previewImage");
+        const downloadBtn = document.getElementById("downloadBtn");
+        const deleteBtn = document.getElementById("deleteBtn");
+
+        uploadArea.addEventListener("click", () => fileInput.click());
+
+        uploadArea.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          uploadArea.classList.add("dragover");
+        });
+
+        uploadArea.addEventListener("dragleave", () => {
+          uploadArea.classList.remove("dragover");
+        });
+
+        uploadArea.addEventListener("drop", (e) => {
+          e.preventDefault();
+          uploadArea.classList.remove("dragover");
+
+          if (e.dataTransfer.files.length > 0) {
+            handleFiles(e.dataTransfer.files);
           }
+        });
+
+        fileInput.addEventListener("change", () => {
+          if (fileInput.files.length > 0) {
+            handleFiles(fileInput.files);
+          }
+        });
+
+        function handleFiles(files) {
+          loadingIndicator.style.display = "block";
+
+          const uploadPromises = [];
+
+          for (const file of files) {
+            if (file.type.startsWith("image/")) {
+              const formData = new FormData();
+              formData.append("image", file);
+
+              const uploadPromise = fetch(`${API_URL}/upload`, {
+                method: "POST",
+                body: formData,
+              }).then((response) => {
+                if (!response.ok) {
+                  return response.json().then((data) => {
+                    throw new Error(data.error || "Error al subir la imagen");
+                  });
+                }
+                return response.json();
+              });
+
+              uploadPromises.push(uploadPromise);
+            }
+          }
+
+          Promise.all(uploadPromises)
+            .then(() => {
+              loadImages();
+              fileInput.value = "";
+            })
+            .catch((error) => {
+              alert(`Error: ${error.message}`);
+              console.error("Error al subir imágenes:", error);
+            })
+            .finally(() => {
+              loadingIndicator.style.display = "none";
+            });
         }
-        
-        Promise.all(uploadPromises)
-          .then(() => {
-            loadImages();
-            fileInput.value = '';
-          })
-          .catch(error => {
-            alert(`Error: ${error.message}`);
-            console.error('Error al subir imágenes:', error);
-          })
-          .finally(() => {
-            loadingIndicator.style.display = 'none';
-          });
-      }
-      
-      // Cargar imágenes desde el servidor
-      function loadImages() {
-        fetch(`${API_URL}/images`)
-          .then(response => response.json())
-          .then(images => {
-            imagesList.innerHTML = '';
-            
-            if (images.length === 0) {
-              noImagesMessage.classList.remove('d-none');
-            } else {
-              noImagesMessage.classList.add('d-none');
-              
-              images.forEach(image => {
-                const imageCard = document.createElement('div');
-                imageCard.className = 'col-md-4 col-sm-6 image-card';
-                
-                imageCard.innerHTML = `
+
+        function loadImages() {
+          fetch(`${API_URL}/images`)
+            .then((response) => response.json())
+            .then((images) => {
+              imagesList.innerHTML = "";
+
+              if (images.length === 0) {
+                noImagesMessage.classList.remove("d-none");
+              } else {
+                noImagesMessage.classList.add("d-none");
+
+                images.forEach((image) => {
+                  const imageCard = document.createElement("div");
+                  imageCard.className = "col-md-4 col-sm-6 image-card";
+
+                  imageCard.innerHTML = `
                   <div class="card">
-                    <img src="${API_URL}/images/${image.id}" class="image-thumbnail" alt="${image.original_name}">
+                    <img src="${API_URL}/images/${
+                    image.id
+                  }" class="image-thumbnail" alt="${image.original_name}">
                     <div class="card-body">
-                      <h5 class="card-title text-truncate">${image.original_name}</h5>
+                      <h5 class="card-title text-truncate">${
+                        image.original_name
+                      }</h5>
                       <p class="card-text">
                         <small class="text-muted">
                           Tamaño: ${formatFileSize(image.size)}<br>
@@ -214,89 +244,306 @@
                           Fecha: ${formatDate(image.created_at)}
                         </small>
                       </p>
-                      <button class="btn btn-sm btn-primary view-btn" data-id="${image.id}" data-name="${image.original_name}">
+                      <button class="btn btn-sm btn-primary view-btn" data-id="${
+                        image.id
+                      }" data-name="${image.original_name}">
                         Ver detalle
                       </button>
                     </div>
                   </div>
                 `;
-                
-                imagesList.appendChild(imageCard);
-                
-                // Agregar evento al botón de vista
-                const viewBtn = imageCard.querySelector('.view-btn');
-                viewBtn.addEventListener('click', () => {
-                  openImagePreview(image.id, image.original_name);
+
+                  imagesList.appendChild(imageCard);
+
+                  const viewBtn = imageCard.querySelector(".view-btn");
+                  viewBtn.addEventListener("click", () => {
+                    openImagePreview(image.id, image.original_name);
+                  });
                 });
-              });
-            }
-          })
-          .catch(error => {
-            console.error('Error al cargar imágenes:', error);
-            alert('Error al cargar las imágenes');
-          });
-      }
-      
-      // Abrir vista previa de imagen
-      function openImagePreview(imageId, imageName) {
-        currentImageId = imageId;
-        previewModalTitle.textContent = imageName;
-        previewImage.src = `${API_URL}/images/${imageId}`;
-        downloadBtn.href = `${API_URL}/images/${imageId}`;
-        downloadBtn.download = imageName;
-        
-        imagePreviewModal.show();
-      }
-      
-      // Eliminar imagen
-      deleteBtn.addEventListener('click', () => {
-        if (currentImageId) {
-          if (confirm('¿Estás seguro de que deseas eliminar esta imagen?')) {
-            fetch(`${API_URL}/images/${currentImageId}`, {
-              method: 'DELETE'
+              }
             })
-            .then(response => {
-              if (!response.ok) {
-                return response.json().then(data => {
-                  throw new Error(data.error || 'Error al eliminar la imagen');
+            .catch((error) => {
+              console.error("Error al cargar imágenes:", error);
+              alert("Error al cargar las imágenes");
+            });
+        }
+
+        function openImagePreview(imageId, imageName) {
+          currentImageId = imageId;
+          previewModalTitle.textContent = imageName;
+          previewImage.src = `${API_URL}/images/${imageId}`;
+          downloadBtn.href = `${API_URL}/images/${imageId}`;
+          downloadBtn.download = imageName;
+
+          imagePreviewModal.show();
+        }
+
+        deleteBtn.addEventListener("click", () => {
+          if (currentImageId) {
+            if (confirm("¿Estás seguro de que deseas eliminar esta imagen?")) {
+              fetch(`${API_URL}/images/${currentImageId}`, {
+                method: "DELETE",
+              })
+                .then((response) => {
+                  if (!response.ok) {
+                    return response.json().then((data) => {
+                      throw new Error(
+                        data.error || "Error al eliminar la imagen"
+                      );
+                    });
+                  }
+                  return response.json();
+                })
+                .then(() => {
+                  imagePreviewModal.hide();
+                  loadImages();
+                })
+                .catch((error) => {
+                  console.error("Error al eliminar imagen:", error);
+                  alert(`Error: ${error.message}`);
                 });
+            }
+          }
+        });
+
+        refreshBtn.addEventListener("click", loadImages);
+
+        function formatFileSize(bytes) {
+          if (bytes < 1024) {
+            return bytes + " B";
+          } else if (bytes < 1024 * 1024) {
+            return (bytes / 1024).toFixed(2) + " KB";
+          } else {
+            return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+          }
+        }
+
+        function formatDate(dateStr) {
+          const date = new Date(dateStr);
+          return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+        }
+
+        // Función para obtener color de badge según el nodo
+        function getNodeColorClass(nodeId) {
+          const nodeColors = [
+            "bg-primary",
+            "bg-success",
+            "bg-info",
+            "bg-warning",
+            "bg-danger",
+          ];
+          return nodeColors[(nodeId - 1) % nodeColors.length] + " text-white";
+        }
+
+        // Sistema de notificaciones Toast
+        function showToast(title, message, type = "info") {
+          // Crear el contenedor si no existe
+          let toastContainer = document.getElementById("toast-container");
+          if (!toastContainer) {
+            toastContainer = document.createElement("div");
+            toastContainer.id = "toast-container";
+            toastContainer.className = "position-fixed bottom-0 end-0 p-3";
+            toastContainer.style.zIndex = "1050";
+            document.body.appendChild(toastContainer);
+          }
+
+          const toastId = "toast-" + Date.now();
+          const toast = document.createElement("div");
+          toast.className = `toast align-items-center text-white bg-${type} border-0`;
+          toast.id = toastId;
+          toast.setAttribute("role", "alert");
+          toast.setAttribute("aria-live", "assertive");
+          toast.setAttribute("aria-atomic", "true");
+
+          toast.innerHTML = `
+            <div class="d-flex">
+              <div class="toast-body">
+                <strong>${title}</strong>: ${message}
+              </div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+          `;
+
+          toastContainer.appendChild(toast);
+          const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+          bsToast.show();
+        }
+
+        // Eventos adicionales
+        document
+          .getElementById("promptUploadBtn")
+          ?.addEventListener("click", () => {
+            fileInput.click();
+          });
+
+        // Cargar imágenes de forma animada
+        function loadImagesWithAnimation() {
+          imagesList.innerHTML =
+            '<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3 text-muted">Cargando imágenes...</p></div>';
+
+          fetch(`${API_URL}/images`)
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Error en la respuesta del servidor");
               }
               return response.json();
             })
-            .then(() => {
-              imagePreviewModal.hide();
-              loadImages();
+            .then((images) => {
+              imagesList.innerHTML = "";
+
+              if (images.length === 0) {
+                noImagesMessage.classList.remove("d-none");
+              } else {
+                noImagesMessage.classList.add("d-none");
+
+                // Ordenar imágenes por fecha (más reciente primero)
+                images.sort(
+                  (a, b) => new Date(b.created_at) - new Date(a.created_at)
+                );
+
+                images.forEach((image, index) => {
+                  setTimeout(() => {
+                    const imageCard = document.createElement("div");
+                    imageCard.className = "col-md-4 col-sm-6 image-card";
+
+                    const nodeClass = getNodeColorClass(image.node_id);
+
+                    imageCard.innerHTML = `
+                      <div class="card h-100 fade-in">
+                        <div class="position-relative">
+                          <img src="${API_URL}/images/${
+                      image.id
+                    }" class="image-thumbnail" alt="${
+                      image.original_name
+                    }" loading="lazy">
+                          <span class="position-absolute top-0 end-0 m-2 node-badge ${nodeClass}">
+                            Nodo ${image.node_id}
+                          </span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                          <h5 class="card-title text-truncate mb-3">${
+                            image.original_name
+                          }</h5>
+                          <p class="card-text mb-3">
+                            <small class="text-muted">
+                              <i class="bi bi-file-earmark me-1"></i> ${formatFileSize(
+                                image.size
+                              )}<br>
+                              <i class="bi bi-calendar me-1"></i> ${formatDate(
+                                image.created_at
+                              )}
+                            </small>
+                          </p>
+                          <div class="mt-auto">
+                            <button class="btn btn-sm btn-primary w-100 view-btn" data-id="${
+                              image.id
+                            }" data-name="${image.original_name}">
+                              <i class="bi bi-eye me-1"></i> Ver detalle
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+
+                    imagesList.appendChild(imageCard);
+
+                    // Añadir evento al botón
+                    const viewBtn = imageCard.querySelector(".view-btn");
+                    viewBtn.addEventListener("click", () => {
+                      openImagePreview(image.id, image.original_name);
+                    });
+
+                    // Añadir evento al hacer clic en la imagen
+                    const imgElement =
+                      imageCard.querySelector(".image-thumbnail");
+                    imgElement.addEventListener("click", () => {
+                      openImagePreview(image.id, image.original_name);
+                    });
+                  }, index * 100); // Retraso para efecto de cascada
+                });
+              }
             })
-            .catch(error => {
-              console.error('Error al eliminar imagen:', error);
-              alert(`Error: ${error.message}`);
+            .catch((error) => {
+              console.error("Error al cargar imágenes:", error);
+              imagesList.innerHTML = `
+                <div class="col-12 text-center py-5">
+                  <i class="bi bi-exclamation-triangle text-warning display-3 mb-3"></i>
+                  <h4 class="text-muted">No se pudieron cargar las imágenes</h4>
+                  <p class="text-muted mb-4">Por favor intenta de nuevo más tarde</p>
+                  <button class="btn btn-primary" id="retryLoadBtn">
+                    <i class="bi bi-arrow-repeat me-2"></i>Reintentar
+                  </button>
+                </div>
+              `;
+
+              document
+                .getElementById("retryLoadBtn")
+                ?.addEventListener("click", loadImagesWithAnimation);
             });
-          }
         }
+
+        // Reemplazar la llamada a loadImages por loadImagesWithAnimation
+        loadImagesWithAnimation();
       });
-      
-      // Botón de actualizar
-      refreshBtn.addEventListener('click', loadImages);
-      
-      // Funciones de utilidad
-      function formatFileSize(bytes) {
-        if (bytes < 1024) {
-          return bytes + ' B';
-        } else if (bytes < 1024 * 1024) {
-          return (bytes / 1024).toFixed(2) + ' KB';
-        } else {
-          return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-        }
-      }
-      
-      function formatDate(dateStr) {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-      }
-      
-      // Cargar imágenes al inicio
-      loadImages();
-    });
-  </script>
-</body>
+    </script>
+
+    <!-- Estadísticas del sistema -->
+    <div class="container mb-5">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">
+            <i class="bi bi-graph-up me-2"></i>Estadísticas del sistema
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-4 mb-3">
+              <div class="p-3 bg-light rounded">
+                <i class="bi bi-hdd-stack text-primary fs-2"></i>
+                <h3 class="mt-2 mb-1" id="totalNodesCount">-</h3>
+                <p class="text-muted mb-0">Nodos activos</p>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="p-3 bg-light rounded">
+                <i class="bi bi-images text-success fs-2"></i>
+                <h3 class="mt-2 mb-1" id="totalImagesCount">-</h3>
+                <p class="text-muted mb-0">Imágenes almacenadas</p>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <div class="p-3 bg-light rounded">
+                <i class="bi bi-hdd text-info fs-2"></i>
+                <h3 class="mt-2 mb-1" id="totalStorageUsed">-</h3>
+                <p class="text-muted mb-0">Almacenamiento usado</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white py-4 mt-auto border-top">
+      <div class="container">
+        <div class="row align-items-center">
+          <div class="col-md-6 text-center text-md-start">
+            <p class="mb-0 text-muted">
+              &copy; 2025 Gestor de Imágenes Distribuido
+            </p>
+          </div>
+          <div class="col-md-6 text-center text-md-end">
+            <p class="mb-0 text-muted">Sistema de balanceo de cargas - UPTC</p>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Toast Container -->
+    <div
+      id="toast-container"
+      class="position-fixed bottom-0 end-0 p-3"
+      style="z-index: 1050"
+    ></div>
+  </body>
 </html>
