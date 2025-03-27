@@ -81,6 +81,18 @@ services:
     networks:
       - app-network
 
+  # storage-node-4:
+  #   build: ./storage-node
+  #   ports:
+  #     - "3005:3002"
+  #   environment:
+  #     - NODE_ID=4
+  #     - MAX_STORAGE=104857600  # 100MB en bytes
+  #   volumes:
+  #     - ./storage-node-4-data:/app/src/storage
+  #   networks:
+  #     - app-network
+
 networks:
   app-network:
     driver: bridge
