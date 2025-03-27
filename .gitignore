@@ -1,3 +1,6 @@
 package-lock.json
 .env
 node_modules
+storage-node-1-data
+storage-node-2-data
+storage-node-3-data
