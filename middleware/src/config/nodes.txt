@@ -1,3 +1,10 @@
 storage-node-1:3002
 storage-node-2:3002
 storage-node-3:3002
+storage-node-4:3002
+storage-node-5:3002
+storage-node-6:3002
+storage-node-7:3002
+storage-node-9:3002
+storage-node-8:3002
+storage-node-10:3002
